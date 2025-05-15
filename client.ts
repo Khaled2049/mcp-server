@@ -20,50 +20,63 @@ const client = new Client({
     await client.connect(transport);
     console.log("[Client] Connected to server.");
 
-    // 1. Read the existing 'greeting' resource
-    console.log("\n[Client] Reading 'greeting' resource...");
-    const greetingResource = await client.readResource({
-      uri: "greeting://John",
-    });
-    console.log("[Client] Greeting Resource:", greetingResource);
-    if (greetingResource.contents && greetingResource.contents.length > 0) {
-      console.log("[Client] Greeting text:", greetingResource.contents[0].text);
-    }
+    // console.log("\n[Client] Reading 'greeting' resource...");
+    // const greetingResource = await client.readResource({
+    //   uri: "greeting://John",
+    // });
+    // console.log("[Client] Greeting Resource:", greetingResource);
+    // if (greetingResource.contents && greetingResource.contents.length > 0) {
+    //   console.log("[Client] Greeting text:", greetingResource.contents[0].text);
+    // }
 
-    // 2. Call the existing 'add' tool
-    console.log("\n[Client] Calling 'add' tool...");
-    const addResult = await client.callTool({
-      name: "add",
-      arguments: {
-        a: 1,
-        b: 2,
-      },
-    });
-    console.log("[Client] Add Tool Result:", addResult);
-    if (
-      Array.isArray(addResult.content) &&
-      addResult.content.length > 0 &&
-      addResult.content[0].type === "text"
-    ) {
-      console.log("[Client] Sum:", addResult.content[0].text);
-    }
-
-    // 3. Read the new 'schema' resource (for PostgreSQL)
-    console.log("\n[Client] Reading 'schema' resource...");
-    const schemaResource = await client.readResource({
-      uri: "schema://main",
-    });
-
-    if (schemaResource.contents && schemaResource.contents.length > 0) {
-      console.log(
-        "[Client] Database Schema Text:\n",
-        schemaResource.contents[0].text
-      );
-    }
+    // console.log("\n[Client] Calling 'add' tool...");
+    // const addResult = await client.callTool({
+    //   name: "add",
+    //   arguments: {
+    //     a: 1,
+    //     b: 2,
+    //   },
+    // });
+    // console.log("[Client] Add Tool Result:", addResult);
+    // if (
+    //   Array.isArray(addResult.content) &&
+    //   addResult.content.length > 0 &&
+    //   addResult.content[0].type === "text"
+    // ) {
+    //   console.log("[Client] Sum:", addResult.content[0].text);
+    // }
+    const naturalQueries = [
+      "Create a query to get all novels created by john, that had a character named johan ",
+    ];
+    const naturalQueryToTest = naturalQueries[0];
 
     console.log(
-      "\n[Client] Calling 'query' tool (example: selecting table names)..."
+      `\n[Client] Calling 'textToSql' tool with query: "${naturalQueryToTest}"`
     );
+    const textToSqlResult = await client.callTool({
+      name: "textToSql",
+      arguments: {
+        naturalQuery: naturalQueryToTest,
+      },
+    });
+
+    console.log("[Client] Text-to-SQL Tool Full Response:", textToSqlResult);
+
+    // console.log("\n[Client] Reading 'schema' resource...");
+    // const schemaResource = await client.readResource({
+    //   uri: "schema://main",
+    // });
+
+    // if (schemaResource.contents && schemaResource.contents.length > 0) {
+    //   console.log(
+    //     "[Client] Database Schema Text:\n",
+    //     schemaResource.contents[0].text
+    //   );
+    // }
+
+    // console.log(
+    //   "\n[Client] Calling 'query' tool (example: selecting table names)..."
+    // );
     try {
       const queryResult = await client.callTool({
         name: "query",
