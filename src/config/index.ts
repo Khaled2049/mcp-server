@@ -13,9 +13,9 @@ export const DB_CONFIG = {
 
 export const OLLAMA_CONFIG = {
   baseUrl: process.env.OLLAMA_API_BASE_URL || "http://127.0.0.1:11434",
-  model: process.env.OLLAMA_MODEL || "deepseek-r1:latest",
+  model: process.env.OLLAMA_MODEL || "gemma3:4b",
 };
 
 export const OPENAI_CONFIG = {
-  apiKey: process.env.OPENAI_API_KEY as string, // Assert as string, validation will follow
+  apiKey: process.env.OPENAI_API_KEY as string,
 };

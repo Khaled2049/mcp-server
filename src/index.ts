@@ -1,31 +1,12 @@
 // src/index.ts
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { mcpServer } from "./server";
-import { initializeDatabase, shutdownDatabase } from "./database";
-import { fetchStudentSpend } from "./graphql/queries";
-
-// Graceful shutdown
-const handleShutdown = async (signal: string) => {
-  console.error(`[Server] ${signal} received. Shutting down.`);
-  await shutdownDatabase();
-  process.exit(0);
-};
-
-process.on("SIGINT", () => handleShutdown("SIGINT"));
-process.on("SIGTERM", () => handleShutdown("SIGTERM"));
 
 async function startApplication() {
-  await initializeDatabase(); // Initialize DB connection pool
   try {
-    console.error("[Server] Attempting to start StdioServerTransport...");
     const transport = new StdioServerTransport();
     await mcpServer.connect(transport);
-    console.error(
-      "[Server] Connected to StdioServerTransport. Listening for messages."
-    );
   } catch (e) {
-    console.error("[Server] Error starting MCP server:", e);
-    await shutdownDatabase(); // Ensure DB is closed even on server startup error
     process.exit(1);
   }
 

@@ -15,7 +15,10 @@ pool.on("error", (err, client) => {
 export const initializeDatabase = async () => {
   try {
     // You could potentially run migrations or check connection here
-    await pool.query("SELECT 1"); // Simple query to test connection
+    const res = await pool.query("SELECT 1"); // Simple query to test connection
+    if (res.rowCount === 0) {
+      throw new Error("Failed to connect to the database.");
+    }
     console.error("[PostgreSQL] Database pool initialized successfully.");
   } catch (error) {
     console.error("[PostgreSQL] Failed to initialize database pool:", error);

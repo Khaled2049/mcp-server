@@ -121,3 +121,118 @@ SQL Query:`;
     throw new Error(errorMessage); // Re-throw a simplified error
   }
 }
+
+export interface OllamaMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+// Interface for the expected structure of Ollama's API response
+interface OllamaChatApiResponse {
+  model: string;
+  created_at: string;
+  message: OllamaMessage; // Contains the assistant's response
+  done: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+/**
+ * Sends a series of messages to the Ollama chat API and returns the assistant's response.
+ * @param messages The full conversation history, including system prompts and user/assistant messages.
+ * @returns A promise that resolves to the assistant's message content as a string.
+ */
+export async function getOllamaChatCompletion(
+  messages: OllamaMessage[]
+): Promise<string> {
+  const payload = {
+    model: OLLAMA_CONFIG.model,
+    messages: messages,
+    stream: false, // Assuming non-streaming for this function
+    options: {
+      temperature: 0.7, // Use configured or default temperature
+      // You can add other Ollama options here from OLLAMA_CONFIG if needed
+    },
+  };
+
+  console.error(
+    `[Ollama Service] Sending chat request to Ollama API: ${OLLAMA_CHAT_API_URL} with model: ${OLLAMA_CONFIG.model}`
+  );
+  // For debugging, you can log the payload:
+  // console.error("[Ollama Service] Payload:", JSON.stringify(payload, null, 2));
+
+  try {
+    const ollamaAxiosResponse: AxiosResponse<OllamaChatApiResponse> =
+      await axios.post(OLLAMA_CHAT_API_URL, payload, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 60000, // Use configured or default timeout
+      });
+
+    const ollamaResponseData = ollamaAxiosResponse.data;
+    const assistantResponse = ollamaResponseData.message?.content?.trim();
+
+    if (!assistantResponse) {
+      console.error(
+        "[Ollama Service] Ollama chat response did not contain expected message content:",
+        ollamaResponseData
+      );
+      throw new Error(
+        "Failed to extract assistant's message from Ollama response. Ensure the model is responding as expected."
+      );
+    }
+
+    console.error(
+      `[Ollama Service] Assistant response from Ollama: ${assistantResponse}`
+    );
+    return assistantResponse;
+  } catch (err: unknown) {
+    let errorMessage = "Unknown error calling Ollama Chat API";
+    if (axios.isAxiosError(err)) {
+      const axiosError = err as AxiosError<any>; // Using 'any' for broader compatibility with error data
+      console.error(
+        `[Ollama Service] Axios error calling Ollama Chat API: ${axiosError.message}`
+      );
+      if (axiosError.response) {
+        const responseData = axiosError.response.data;
+        console.error(
+          "[Ollama Service] Ollama API Response Status:",
+          axiosError.response.status
+        );
+        console.error(
+          "[Ollama Service] Ollama API Response Data:",
+          JSON.stringify(responseData, null, 2)
+        );
+        // Prefer a specific error message from Ollama if available
+        const ollamaError =
+          responseData?.error ||
+          (typeof responseData === "string"
+            ? responseData
+            : axiosError.message);
+        errorMessage = `Ollama API Error (${axiosError.response.status}): ${ollamaError}`;
+      } else if (axiosError.request) {
+        console.error(
+          "[Ollama Service] Ollama API No Response: The request was made but no response was received."
+        );
+        errorMessage = `No response from Ollama API. Is ${OLLAMA_CONFIG.baseUrl} accessible? Details: ${axiosError.message}`;
+      } else {
+        errorMessage = `Error setting up Ollama API request: ${axiosError.message}`;
+      }
+    } else if (err instanceof Error) {
+      console.error(
+        `[Ollama Service] Non-Axios error in chat completion: ${err.message}`
+      );
+      errorMessage = err.message;
+    } else {
+      console.error(
+        `[Ollama Service] Unknown error object in chat completion:`,
+        err
+      );
+    }
+    // Re-throw a consolidated error message
+    throw new Error(errorMessage);
+  }
+}

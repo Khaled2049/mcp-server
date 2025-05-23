@@ -1,5 +1,4 @@
-// src/database/queries.ts
-import { Pool, QueryResultRow } from "pg";
+import { QueryResultRow } from "pg";
 import { pool } from "./index"; // Import the shared pool instance
 
 export const executeQuery = async <T extends QueryResultRow>(
