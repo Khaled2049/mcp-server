@@ -2,7 +2,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { OLLAMA_CONFIG } from "../config"; // Import Ollama config
 
-interface ChatMessage {
+export interface ChatMessage {
   role: "system" | "user" | "assistant";
   content: string;
 }
@@ -152,18 +152,14 @@ export async function getOllamaChatCompletion(
   const payload = {
     model: OLLAMA_CONFIG.model,
     messages: messages,
-    stream: false, // Assuming non-streaming for this function
-    options: {
-      temperature: 0.7, // Use configured or default temperature
-      // You can add other Ollama options here from OLLAMA_CONFIG if needed
-    },
+    stream: false,
   };
 
   console.error(
     `[Ollama Service] Sending chat request to Ollama API: ${OLLAMA_CHAT_API_URL} with model: ${OLLAMA_CONFIG.model}`
   );
   // For debugging, you can log the payload:
-  // console.error("[Ollama Service] Payload:", JSON.stringify(payload, null, 2));
+  console.error("[Ollama Service] Payload:", JSON.stringify(payload, null, 2));
 
   try {
     const ollamaAxiosResponse: AxiosResponse<OllamaChatApiResponse> =

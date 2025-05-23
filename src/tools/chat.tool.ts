@@ -5,7 +5,6 @@ import {
   OllamaMessage,
 } from "../services/ollama.service"; // Adjust path as necessary
 
-// Schema for individual messages within the history array
 const messageInputSchema = z.object({
   role: z.enum(["system", "user", "assistant"]),
   content: z.string(),
@@ -15,8 +14,6 @@ export const chatTool = (server: McpServer) => {
   server.tool(
     "chat",
     {
-      // Input schema for the chat tool
-      // The client is expected to send the new message and the entire preceding history.
       newMessage: z
         .string()
         .min(1, "New message must be at least 1 character long."),

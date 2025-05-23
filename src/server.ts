@@ -1,5 +1,11 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { addTool, queryTool, textToSqlTool, chatTool } from "./tools";
+import {
+  addTool,
+  queryTool,
+  textToSqlTool,
+  chatTool,
+  interactionTool,
+} from "./tools";
 import { greetingResource, schemaResource } from "./resources";
 
 export const mcpServer = new McpServer({
@@ -10,6 +16,7 @@ export const mcpServer = new McpServer({
 console.log("[MCP Server] Instance created.");
 
 // Register all tools
+interactionTool(mcpServer);
 addTool(mcpServer);
 queryTool(mcpServer);
 textToSqlTool(mcpServer);
