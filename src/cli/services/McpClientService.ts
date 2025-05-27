@@ -39,6 +39,34 @@ export async function ensureConnected(): Promise<Client> {
   return client;
 }
 
+export async function accessResource(resourceUri: string) {
+  const transport = new StdioClientTransport({
+    command: MCP_SERVER_COMMAND,
+    args: MCP_SERVER_ARGS,
+  });
+  const client = getClientInstance();
+
+  await client.connect(transport);
+
+  try {
+    // Send the resources/read request
+    const response = await client.readResource({
+      uri: resourceUri,
+    });
+
+    // Process the resource content
+    if (response.content) {
+      console.log("Resource content:", response.content);
+    } else {
+      console.log("Resource not found or empty.");
+    }
+  } catch (error) {
+    console.error("Error accessing resource:", error);
+  } finally {
+    await client.close();
+  }
+}
+
 export async function disconnectClient(): Promise<void> {
   const client = getClientInstance();
 

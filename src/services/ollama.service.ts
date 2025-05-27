@@ -52,10 +52,6 @@ SQL Query:`;
     },
   };
 
-  console.error(
-    `[Ollama Service] Sending request to Ollama API: ${OLLAMA_CHAT_API_URL} with model: ${OLLAMA_CONFIG.model}`
-  );
-
   try {
     const ollamaAxiosResponse: AxiosResponse<OllamaChatResponse> =
       await axios.post(OLLAMA_CHAT_API_URL, payload, {
@@ -80,7 +76,6 @@ SQL Query:`;
     sqlQuery = sqlQuery.replace(/^```sql\s*|\s*```$/gi, "").trim();
     sqlQuery = sqlQuery.replace(/;\s*$/, "");
 
-    console.error(`[Ollama Service] Generated SQL from Ollama: ${sqlQuery}`);
     return sqlQuery;
   } catch (err: unknown) {
     let errorMessage = "Unknown error calling Ollama API";
@@ -141,11 +136,145 @@ interface OllamaChatApiResponse {
   eval_duration?: number;
 }
 
-/**
- * Sends a series of messages to the Ollama chat API and returns the assistant's response.
- * @param messages The full conversation history, including system prompts and user/assistant messages.
- * @returns A promise that resolves to the assistant's message content as a string.
- */
+interface OllamaGenerateResponse {
+  model: string;
+  created_at: string;
+  response: string; // The generated text
+  done: boolean;
+  total_duration?: number;
+  load_duration?: number;
+  prompt_eval_count?: number;
+  prompt_eval_duration?: number;
+  eval_count?: number;
+  eval_duration?: number;
+}
+
+const OLLAMA_GENERATE_API_URL = `${OLLAMA_CONFIG.baseUrl}/api/generate`;
+
+export async function generateTextFromPrompt(
+  prompt: string,
+  model: string = OLLAMA_CONFIG.model,
+  temperature: number = 0.1
+): Promise<string> {
+  const payload = {
+    model: model,
+    prompt: prompt,
+    stream: false,
+    options: {
+      temperature: temperature,
+    },
+  };
+
+  try {
+    const ollamaAxiosResponse: AxiosResponse<OllamaGenerateResponse> =
+      await axios.post(OLLAMA_GENERATE_API_URL, payload, {
+        headers: { "Content-Type": "application/json" },
+        timeout: 60000, // 60-second timeout
+      });
+
+    const ollamaResponseData = ollamaAxiosResponse.data;
+    const generatedContent = ollamaResponseData.response?.trim();
+
+    if (!generatedContent) {
+      console.error(
+        "[Ollama Service] Ollama generate response did not contain expected content:",
+        ollamaResponseData
+      );
+      throw new Error(
+        "Failed to extract generated content from Ollama response. Ensure the model is responding correctly and the response structure is as expected."
+      );
+    }
+
+    return generatedContent;
+  } catch (err: unknown) {
+    let errorMessage = "Unknown error calling Ollama Generate API";
+    if (axios.isAxiosError(err)) {
+      const axiosError = err as AxiosError<any>;
+      console.error(
+        `[Ollama Service] Axios error calling Ollama Generate API: ${axiosError.message}`
+      );
+      if (axiosError.response) {
+        const responseData = axiosError.response.data;
+        console.error(
+          "[Ollama Service] Ollama API Response Status:",
+          axiosError.response.status
+        );
+        console.error(
+          "[Ollama Service] Ollama API Response Data:",
+          JSON.stringify(responseData, null, 2)
+        );
+        const ollamaError =
+          responseData?.error ||
+          (typeof responseData === "string"
+            ? responseData
+            : axiosError.message);
+        errorMessage = `Ollama API Error (${axiosError.response.status}): ${ollamaError}`;
+      } else if (axiosError.request) {
+        console.error(
+          "[Ollama Service] Ollama API No Response: The request was made but no response was received."
+        );
+        errorMessage = `No response from Ollama API. Is it running at ${OLLAMA_GENERATE_API_URL}? Details: ${axiosError.message}`;
+      } else {
+        errorMessage = `Error setting up Ollama API generate request: ${axiosError.message}`;
+      }
+    } else if (err instanceof Error) {
+      console.error(`[Ollama Service] Non-Axios error: ${err.message}`);
+      errorMessage = err.message;
+    } else {
+      console.error(`[Ollama Service] Unknown error:`, err);
+    }
+    throw new Error(errorMessage);
+  }
+}
+
+export async function summarizeText(
+  textToSummarize: string,
+  summaryLength: "brief" | "medium" | "detailed" = "medium"
+): Promise<string> {
+  let instructions = "";
+  switch (summaryLength) {
+    case "brief":
+      instructions =
+        "Provide a very concise summary, ideally one to two sentences.";
+      break;
+    case "medium":
+      instructions =
+        "Provide a concise summary, focusing on the main points in a paragraph or two.";
+      break;
+    case "detailed":
+      instructions =
+        "Provide a comprehensive summary, including key details and supporting information, covering a few paragraphs.";
+      break;
+    default:
+      instructions = "Provide a concise summary.";
+  }
+
+  const fullPrompt = `You are an expert summarizer. Your task is to accurately and concisely summarize the following text based on the user's requested length.
+
+Instructions: ${instructions}
+Output ONLY the summarized text. Do not include any preambles, comments, or markdown formatting.
+
+Text to Summarize:
+---
+${textToSummarize}
+---
+
+Summary:`;
+
+  try {
+    const summarizedContent = await generateTextFromPrompt(
+      fullPrompt,
+      OLLAMA_CONFIG.model,
+      0.5
+    ); // Adjust temperature as needed for summarization
+
+    return summarizedContent;
+  } catch (err: unknown) {
+    // Re-throw any errors from generateTextFromPrompt
+    throw err;
+  }
+}
+
 export async function getOllamaChatCompletion(
   messages: OllamaMessage[]
 ): Promise<string> {
@@ -154,12 +283,6 @@ export async function getOllamaChatCompletion(
     messages: messages,
     stream: false,
   };
-
-  console.error(
-    `[Ollama Service] Sending chat request to Ollama API: ${OLLAMA_CHAT_API_URL} with model: ${OLLAMA_CONFIG.model}`
-  );
-  // For debugging, you can log the payload:
-  console.error("[Ollama Service] Payload:", JSON.stringify(payload, null, 2));
 
   try {
     const ollamaAxiosResponse: AxiosResponse<OllamaChatApiResponse> =

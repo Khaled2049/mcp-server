@@ -5,6 +5,8 @@ import {
   textToSqlTool,
   chatTool,
   interactionTool,
+  summarizeJiraTool,
+  getStudentSpend,
 } from "./tools";
 import { greetingResource, schemaResource } from "./resources";
 
@@ -21,6 +23,8 @@ addTool(mcpServer);
 queryTool(mcpServer);
 textToSqlTool(mcpServer);
 chatTool(mcpServer);
+summarizeJiraTool(mcpServer);
+getStudentSpend(mcpServer);
 
 // Register all resources
 greetingResource(mcpServer);
